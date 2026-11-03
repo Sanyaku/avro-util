@@ -12,6 +12,9 @@ plugins {
 dependencies {
   //we use this module as an easy way to "export" libraries for use by other test modules
   api "commons-io:commons-io:2.6"
-  api "net.openhft:compiler:2.4.1"
+  api("net.openhft:compiler:2026.2") {
+    //pulls slf4j-api 2, which ignores the log4j-slf4j-impl test binding
+    exclude group: "org.slf4j"
+  }
   api "org.testng:testng:6.14.3"
 }
