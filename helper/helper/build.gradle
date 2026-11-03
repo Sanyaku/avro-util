@@ -44,10 +44,10 @@ shadowJar {
   dependencies {
     //do not pack slf4j
     exclude(dependency("org.slf4j:slf4j-api:.*"))
+    //declared as pom dependencies instead, see pom.withXml below
+    exclude(dependency("org.apache.commons:.*"))
   }
 
-  //relocate commons-text to not conflict with anything that might be on a user's classpath
-  relocate 'org.apache.commons', 'com.linkedin.avroutil1.compatibility.shaded.org.apache.commons'
   //relocate zero-allocation-hashing
   relocate 'net.openhft', 'com.linkedin.avroutil1.compatibility.shaded.net.openhft'
 }
@@ -123,6 +123,20 @@ publishing {
           developerConnection = 'scm:git:ssh://github.com:linkedin/avro-util.git'
           url = 'https://github.com/linkedin/avro-util'
         }
+      }
+
+      pom.withXml {
+        Node dependenciesNode = asNode().appendNode('dependencies')
+        configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+            .collect { it.moduleVersion.id }
+            .findAll { it.group == 'org.apache.commons' }
+            .each { id ->
+              def dependencyNode = dependenciesNode.appendNode('dependency')
+              dependencyNode.appendNode('groupId', id.group)
+              dependencyNode.appendNode('artifactId', id.name)
+              dependencyNode.appendNode('version', id.version)
+              dependencyNode.appendNode('scope', 'runtime')
+            }
       }
     }
   }
