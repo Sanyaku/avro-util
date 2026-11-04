@@ -75,6 +75,13 @@ subprojects {
     test {
       useTestNG()
 
+      //net.openhft:compiler needs reflective access to javac and ClassLoader internals on JDK 11+
+      if (JavaVersion.current() >= JavaVersion.VERSION_11) {
+        jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-exports', 'jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED',
+            '--add-opens', 'jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED'
+      }
+
       testLogging {
         showStandardStreams = true
         showExceptions = true
@@ -221,16 +228,6 @@ subprojects {
 
         repositories {
           mavenLocal()
-          maven {
-            name "LinkedInJfrog"
-            url "https://linkedin.jfrog.io/artifactory/avro-util"
-            credentials {
-              if (System.getenv('JFROG_USER') != null && System.getenv('JFROG_KEY') != null) {
-                username System.getenv('JFROG_USER')
-                password System.getenv('JFROG_KEY')
-              }
-            }
-          }
         }
       }
     }
@@ -244,7 +241,7 @@ subprojects {
 
   plugins.withType(JacocoPlugin) {
     jacoco {
-      toolVersion = "0.8.5"
+      toolVersion = "0.8.12"
     }
 
     //we dont need reports at the individual module level as we generate an aggregate
@@ -253,6 +250,22 @@ subprojects {
         xml.enabled false
         html.enabled false
         csv.enabled false
+      }
+    }
+  }
+}
+
+if (findProperty('artifactory_contextUrl') && findProperty('artifactory_password')) {
+  publishing {
+    repositories {
+      maven {
+        name = 'SumoArtifactory'
+        url = "${artifactory_contextUrl}/sumo-release-local"
+        credentials(HttpHeaderCredentials) {
+          name = 'Authorization'
+          value = "Bearer ${artifactory_password}"
+        }
+        authentication { header(HttpHeaderAuthentication) }
       }
     }
   }
